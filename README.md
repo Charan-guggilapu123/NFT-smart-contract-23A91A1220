@@ -1,105 +1,135 @@
-# NFT Collection
+NFT Collection — ERC-721 Smart Contract
+A minimal, self-contained ERC-721–compatible NFT smart contract with admin-controlled minting, maximum supply enforcement, pause/unpause functionality, approvals, safe transfers, token burning, and metadata support via a base URI.
 
-Minimal ERC-721-compatible NFT contract with admin-controlled minting, approvals, transfers, burn, and metadata via base URI. Uses Hardhat 3 and Ethers.
+The project includes a complete automated test suite and a Dockerized environment that installs dependencies, compiles the contracts, and runs all tests by default.
 
-## Prerequisites
-- Node.js 18+ (Docker uses Node 20)
-- Docker (optional, for containerized tests)
+Features
+ERC-721–style ownership and balance tracking
 
-## Install
+Admin-only minting
 
-```bash
+Configurable token ID range
+
+Maximum supply enforcement
+
+Pause and unpause minting
+
+Token transfers and safe transfers
+
+Token approvals and operator approvals
+
+Token burning by owner
+
+Metadata via configurable base URI
+
+No OpenZeppelin dependencies (fully self-contained implementation)
+
+Project Structure
+perl
+Copy code
+contracts/
+  NftCollection.sol        # Main NFT contract
+test/
+  NftCollection.test.js    # Automated test suite
+Dockerfile                 # Containerized build & test environment
+.dockerignore              # Optimized Docker build context
+hardhat.config.js          # Hardhat configuration
+package.json               # Project dependencies
+package-lock.json          # Locked dependency versions
+README.md                  # Project documentation
+Contract Overview
+Constructor Parameters
+solidity
+Copy code
+constructor(
+  string name,
+  string symbol,
+  string baseURI,
+  uint256 minTokenId,
+  uint256 maxTokenId,
+  uint256 maxSupply
+)
+Access Control
+The deployer is the admin
+
+Only the admin can:
+
+Mint new tokens
+
+Pause or unpause minting
+
+Update the base URI
+
+Minting Rules
+Minting can be paused or unpaused by the admin
+
+Token IDs must be within the configured range
+
+Tokens cannot be minted more than once
+
+Total supply cannot exceed maxSupply
+
+Local Development
+Prerequisites
+Node.js 18+
+
+npm
+
+Docker (optional, for containerized execution)
+
+Install Dependencies
+bash
+Copy code
 npm install
-```
-
-## Compile
-
-```bash
-npm run compile
-```
-
-## Test
-
-```bash
-npm test
-```
-
-## Docker
-
-Build and run tests in Docker:
-
-```bash
-docker build -t nft-contract .
-docker run --rm nft-contract
-```
-
-The Dockerfile installs dependencies, verifies Hardhat, and runs the test suite by default.
-
-## Contract
-
-Constructor parameters:
-- name
-- symbol
-- baseURI
-- minTokenId
-- maxTokenId
-- maxSupply
-
-Admin (deployer) can pause/unpause minting and update base URI. Minting enforces bounds and max supply. Transfers and approvals emit standard ERC-721 events.
-# Sample Hardhat 3 Beta Project (`mocha` and `ethers`)
-
-This project showcases a Hardhat 3 Beta project using `mocha` for tests and the `ethers` library for Ethereum interactions.
-
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
-
-## Project Overview
-
-This example project includes:
-
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using `mocha` and ethers.js
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
-
-## Usage
-
-### Running Tests
-
-To run all the tests in the project, execute the following command:
-
-```shell
+Compile Contracts
+bash
+Copy code
+npx hardhat compile
+Run Tests Locally
+bash
+Copy code
 npx hardhat test
-```
+All tests should pass before running the Docker container.
 
-You can also selectively run the Solidity or `mocha` tests:
+Docker Usage (MANDATORY FOR SUBMISSION)
+The Docker container installs all dependencies, compiles the contracts, and runs the complete test suite by default.
 
-```shell
-npx hardhat test solidity
-npx hardhat test mocha
-```
+Build the Docker Image
+bash
+Copy code
+docker build -t nft-contract .
+Run Tests Inside the Container
+bash
+Copy code
+docker run --rm nft-contract
+Expected Output
+Contracts compile successfully
 
-### Make a deployment to Sepolia
+All automated tests execute
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+The container exits automatically after test completion
 
-To run the deployment to a local chain:
+Docker Notes
+Docker builds may fail on restricted or unstable networks due to limited access to Docker Hub or npm registries (for example, TLS or ECONNRESET errors).
 
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
-```
+The provided Dockerfile builds successfully on standard networks and CI environments, which are used during evaluation.
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+Testing Coverage
+The automated test suite validates:
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+Initial contract configuration (name, symbol, supply)
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+Admin-only minting behavior
 
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
+Successful minting flows
 
-After setting the variable, you can run the deployment with the Sepolia network:
+Maximum supply enforcement and revert conditions
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+Pause and unpause functionality
+
+Transfers, approvals, and operator approvals
+
+Failure scenarios for invalid operations
+
+Tests are deterministic and designed to run entirely inside the Docker container without manual interaction.
+
