@@ -1,20 +1,12 @@
-# Use an official Node image
-FROM node:20-bullseye
+FROM node:20-alpine
 
-# Create app directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copy package files first (to use Docker cache)
-COPY package.json package-lock.json* ./
+COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm ci --no-audit --no-fund
-
-# Copy rest of the project
 COPY . .
 
-# Prebuild (hardhat doesn't require build step but ensure dependencies)
-RUN npx hardhat --version
+RUN npx hardhat compile
 
-# Default command: run tests
-CMD ["npm", "test"]
+CMD ["npx", "hardhat", "test"]
