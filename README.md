@@ -26,6 +26,8 @@ No OpenZeppelin dependencies (fully self-contained implementation)
 
 # Project Structure
 
+```bash
+
 contracts/
   NftCollection.sol        # Main NFT contract
 test/
@@ -36,7 +38,7 @@ hardhat.config.js          # Hardhat configuration
 package.json               # Project dependencies
 package-lock.json          # Locked dependency versions
 README.md                  # Project documentation
-
+  ```
 # Contract Overview
 
 # Constructor Parameters
