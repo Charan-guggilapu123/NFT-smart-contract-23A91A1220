@@ -1,0 +1,6 @@
+=== DEBUG INFO ===
+hre keys: config, hardhatArguments, tasks, scopes, userConfig, version, run, artifacts, network, _environmentExtenders, ethers, ignition
+hre.ethers exists: true
+hre.ethers.getSigners exists: function
+Got signers: 20
+=== END DEBUG ===
