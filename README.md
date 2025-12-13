@@ -1,3 +1,51 @@
+# NFT Collection
+
+Minimal ERC-721-compatible NFT contract with admin-controlled minting, approvals, transfers, burn, and metadata via base URI. Uses Hardhat 3 and Ethers.
+
+## Prerequisites
+- Node.js 18+ (Docker uses Node 20)
+- Docker (optional, for containerized tests)
+
+## Install
+
+```bash
+npm install
+```
+
+## Compile
+
+```bash
+npm run compile
+```
+
+## Test
+
+```bash
+npm test
+```
+
+## Docker
+
+Build and run tests in Docker:
+
+```bash
+docker build -t nft-contract .
+docker run --rm nft-contract
+```
+
+The Dockerfile installs dependencies, verifies Hardhat, and runs the test suite by default.
+
+## Contract
+
+Constructor parameters:
+- name
+- symbol
+- baseURI
+- minTokenId
+- maxTokenId
+- maxSupply
+
+Admin (deployer) can pause/unpause minting and update base URI. Minting enforces bounds and max supply. Transfers and approvals emit standard ERC-721 events.
 # Sample Hardhat 3 Beta Project (`mocha` and `ethers`)
 
 This project showcases a Hardhat 3 Beta project using `mocha` for tests and the `ethers` library for Ethereum interactions.

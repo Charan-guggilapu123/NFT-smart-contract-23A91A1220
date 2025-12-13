@@ -1,14 +1,20 @@
-# Use Foundry official image
-FROM ghcr.io/foundry-rs/foundry:latest
+# Use an official Node image
+FROM node:20-bullseye
 
-# Set working directory
-WORKDIR /app
+# Create app directory
+WORKDIR /usr/src/app
 
-# Copy project files
-COPY . .
+# Copy package files first (to use Docker cache)
+COPY package.json package-lock.json* ./
 
 # Install dependencies
-RUN forge install
+RUN npm ci --no-audit --no-fund
+
+# Copy rest of the project
+COPY . .
+
+# Prebuild (hardhat doesn't require build step but ensure dependencies)
+RUN npx hardhat --version
 
 # Default command: run tests
-CMD ["forge", "test", "-vvv"]
+CMD ["npm", "test"]
