@@ -1,9 +1,9 @@
-NFT Collection — ERC-721 Smart Contract
+# NFT Collection — ERC-721 Smart Contract
 A minimal, self-contained ERC-721–compatible NFT smart contract with admin-controlled minting, maximum supply enforcement, pause/unpause functionality, approvals, safe transfers, token burning, and metadata support via a base URI.
 
 The project includes a complete automated test suite and a Dockerized environment that installs dependencies, compiles the contracts, and runs all tests by default.
 
-Features
+# Features
 ERC-721–style ownership and balance tracking
 
 Admin-only minting
@@ -24,9 +24,8 @@ Metadata via configurable base URI
 
 No OpenZeppelin dependencies (fully self-contained implementation)
 
-Project Structure
-perl
-Copy code
+# Project Structure
+
 contracts/
   NftCollection.sol        # Main NFT contract
 test/
@@ -37,10 +36,11 @@ hardhat.config.js          # Hardhat configuration
 package.json               # Project dependencies
 package-lock.json          # Locked dependency versions
 README.md                  # Project documentation
-Contract Overview
-Constructor Parameters
-solidity
-Copy code
+
+# Contract Overview
+
+# Constructor Parameters
+
 constructor(
   string name,
   string symbol,
@@ -49,10 +49,12 @@ constructor(
   uint256 maxTokenId,
   uint256 maxSupply
 )
-Access Control
-The deployer is the admin
 
-Only the admin can:
+# Access Control
+
+->The deployer is the admin
+
+->Only the admin can:
 
 Mint new tokens
 
@@ -60,7 +62,7 @@ Pause or unpause minting
 
 Update the base URI
 
-Minting Rules
+# Minting Rules
 Minting can be paused or unpaused by the admin
 
 Token IDs must be within the configured range
@@ -69,52 +71,53 @@ Tokens cannot be minted more than once
 
 Total supply cannot exceed maxSupply
 
-Local Development
-Prerequisites
+# Local Development
+
+# Prerequisites
 Node.js 18+
 
 npm
 
 Docker (optional, for containerized execution)
 
-Install Dependencies
-bash
-Copy code
+# Install Dependencies
+
 npm install
-Compile Contracts
-bash
-Copy code
+
+# Compile Contracts
+
 npx hardhat compile
-Run Tests Locally
-bash
-Copy code
+
+# Run Tests Locally
+
 npx hardhat test
+
 All tests should pass before running the Docker container.
 
-Docker Usage (MANDATORY FOR SUBMISSION)
+# Docker Usage (MANDATORY FOR SUBMISSION)
 The Docker container installs all dependencies, compiles the contracts, and runs the complete test suite by default.
 
-Build the Docker Image
-bash
-Copy code
+# Build the Docker Image
+
 docker build -t nft-contract .
-Run Tests Inside the Container
-bash
-Copy code
+
+# Run Tests Inside the Container
+
 docker run --rm nft-contract
-Expected Output
+
+# Expected Output
 Contracts compile successfully
 
 All automated tests execute
 
 The container exits automatically after test completion
 
-Docker Notes
+# Docker Notes
 Docker builds may fail on restricted or unstable networks due to limited access to Docker Hub or npm registries (for example, TLS or ECONNRESET errors).
 
 The provided Dockerfile builds successfully on standard networks and CI environments, which are used during evaluation.
 
-Testing Coverage
+# Testing Coverage
 The automated test suite validates:
 
 Initial contract configuration (name, symbol, supply)
