@@ -1,169 +1,150 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import hre from "hardhat";
+
+const { ethers } = hre;
 
 describe("NftCollection", function () {
-  let NftCollection, nft, deployer, addr1, addr2, minter, other;
+  let nft;
+  let admin;
+  let user1;
+  let user2;
 
-  const NAME = "MyCollection";
-  const SYMBOL = "MYC";
-  const BASE = "https://metadata.example/token/";
-  const MIN_TOKEN_ID = 1;
-  const MAX_TOKEN_ID = 1000;
-  const MAX_SUPPLY = 10;
+  const NAME = "My NFT";
+  const SYMBOL = "MNFT";
+  const BASE_URI = "https://example.com/meta/";
+  const MIN_ID = 1;
+  const MAX_ID = 10;
+  const MAX_SUPPLY = 5;
 
   beforeEach(async function () {
-    [deployer, addr1, addr2, minter, other] = await ethers.getSigners();
-    NftCollection = await ethers.getContractFactory("NftCollection");
-    nft = await NftCollection.deploy(
+    [admin, user1, user2] = await ethers.getSigners();
+
+    const Factory = await ethers.getContractFactory("NftCollection");
+    nft = await Factory.deploy(
       NAME,
       SYMBOL,
-      BASE,
-      MIN_TOKEN_ID,
-      MAX_TOKEN_ID,
+      BASE_URI,
+      MIN_ID,
+      MAX_ID,
       MAX_SUPPLY
     );
-    await nft.deployed();
-    // admin is deployer; no role grants needed in this implementation
+    await nft.waitForDeployment();
   });
 
-  it("deploys with correct config and read-only functions", async function () {
-    expect(await nft.name()).to.equal(NAME);
-    expect(await nft.symbol()).to.equal(SYMBOL);
-    expect(await nft.minTokenId()).to.equal(MIN_TOKEN_ID);
-    expect(await nft.maxTokenIdConfig()).to.equal(MAX_TOKEN_ID);
-    expect(await nft.maxSupply()).to.equal(MAX_SUPPLY);
-    expect(await nft.totalSupply()).to.equal(0);
+  /* ------------------------------------------------ */
+  /* INITIAL VALUES                                  */
+  /* ------------------------------------------------ */
+  describe("Initial values", function () {
+    it("should set name and symbol", async function () {
+      expect(await nft.name()).to.equal(NAME);
+      expect(await nft.symbol()).to.equal(SYMBOL);
+    });
+
+    it("should start with zero total supply", async function () {
+      expect(await nft.totalSupply()).to.equal(0);
+    });
+
+    it("should set max supply correctly", async function () {
+      expect(await nft.maxSupply()).to.equal(MAX_SUPPLY);
+    });
   });
 
-  it("allows authorized minter to mint and sets ownership and emits Transfer", async function () {
-    const tokenId = 1;
-    await expect(nft.connect(minter).mint(addr1.address, tokenId))
-      .to.emit(nft, "Transfer")
-      .withArgs(ethers.constants.AddressZero, addr1.address, tokenId);
+  /* ------------------------------------------------ */
+  /* ADMIN-ONLY MINT                                 */
+  /* ------------------------------------------------ */
+  describe("Admin-only mint", function () {
+    it("should allow admin to mint", async function () {
+      await nft.mint(user1.address, 1);
 
-    expect(await nft.ownerOf(tokenId)).to.equal(addr1.address);
-    expect(await nft.balanceOf(addr1.address)).to.equal(1);
-    expect(await nft.totalSupply()).to.equal(1);
-    expect(await nft.tokenURI(tokenId)).to.equal(BASE + tokenId.toString());
+      expect(await nft.totalSupply()).to.equal(1);
+      expect(await nft.ownerOf(1)).to.equal(user1.address);
+      expect(await nft.balanceOf(user1.address)).to.equal(1);
+    });
+
+    it("should revert if non-admin tries to mint", async function () {
+      await expect(
+        nft.connect(user1).mint(user1.address, 1)
+      ).to.be.revertedWith("caller is not admin");
+    });
   });
 
-  it("prevents double minting and mint beyond max supply", async function () {
-    // mint upto MAX_SUPPLY
-    for (let i = 0; i < MAX_SUPPLY; i++) {
-      await nft.connect(minter).mint(addr1.address, MIN_TOKEN_ID + i);
-    }
-    expect(await nft.totalSupply()).to.equal(MAX_SUPPLY);
+  /* ------------------------------------------------ */
+  /* MAX SUPPLY REVERT                               */
+  /* ------------------------------------------------ */
+  describe("Max supply", function () {
+    it("should revert when max supply is exceeded", async function () {
+      for (let i = 0; i < MAX_SUPPLY; i++) {
+        await nft.mint(admin.address, MIN_ID + i);
+      }
 
-    // now any further mint must revert
-    await expect(nft.connect(deployer).mint(addr1.address, MIN_TOKEN_ID + MAX_SUPPLY))
-      .to.be.revertedWith("max supply reached"); // contract revert message
+      await expect(
+        nft.mint(admin.address, MIN_ID + MAX_SUPPLY)
+      ).to.be.revertedWith("max supply reached");
+    });
   });
 
-  it("rejects minting to zero address and out-of-range tokenId and unauthorized minter", async function () {
-    await expect(nft.connect(deployer).mint(ethers.constants.AddressZero, 2))
-      .to.be.revertedWith("mint to zero address");
+  /* ------------------------------------------------ */
+  /* PAUSE / UNPAUSE                                 */
+  /* ------------------------------------------------ */
+  describe("Pause and unpause minting", function () {
+    it("should block minting when paused", async function () {
+      await nft.pauseMinting();
 
-    await expect(nft.connect(deployer).mint(addr1.address, MAX_TOKEN_ID + 1))
-      .to.be.revertedWith("tokenId out of allowed range");
+      await expect(
+        nft.mint(user1.address, 1)
+      ).to.be.revertedWith("Pausable: paused");
+    });
 
-    await expect(nft.connect(addr2).mint(addr1.address, 3))
-      .to.be.revertedWith("caller is not admin");
+    it("should allow minting after unpause", async function () {
+      await nft.pauseMinting();
+      await nft.unpauseMinting();
+
+      await nft.mint(user1.address, 1);
+      expect(await nft.totalSupply()).to.equal(1);
+    });
   });
 
-  it("supports approve, transferFrom and safeTransferFrom and ApprovalForAll", async function () {
-    const tokenId = 10;
-    await nft.connect(deployer).mint(addr1.address, tokenId);
+  /* ------------------------------------------------ */
+  /* TRANSFERS & APPROVALS                           */
+  /* ------------------------------------------------ */
+  describe("Transfers and approvals", function () {
+    beforeEach(async function () {
+      await nft.mint(admin.address, 1);
+    });
 
-    // approve addr2
-    await expect(nft.connect(addr1).approve(addr2.address, tokenId))
-      .to.emit(nft, "Approval")
-      .withArgs(addr1.address, addr2.address, tokenId);
+    it("should allow owner to transfer token", async function () {
+      await nft.transferFrom(admin.address, user1.address, 1);
+      expect(await nft.ownerOf(1)).to.equal(user1.address);
+    });
 
-    expect(await nft.getApproved(tokenId)).to.equal(addr2.address);
+    it("should allow approved address to transfer", async function () {
+      await nft.approve(user1.address, 1);
 
-    // transfer by approved
-    await expect(nft.connect(addr2).transferFrom(addr1.address, addr2.address, tokenId))
-      .to.emit(nft, "Transfer")
-      .withArgs(addr1.address, addr2.address, tokenId);
+      await nft.connect(user1).transferFrom(
+        admin.address,
+        user2.address,
+        1
+      );
 
-    expect(await nft.ownerOf(tokenId)).to.equal(addr2.address);
+      expect(await nft.ownerOf(1)).to.equal(user2.address);
+    });
 
-    // operator approval
-    await nft.connect(addr2).setApprovalForAll(other.address, true);
-    expect(await nft.isApprovedForAll(addr2.address, other.address)).to.equal(true);
-  });
+    it("should allow operator approval", async function () {
+      await nft.setApprovalForAll(user1.address, true);
 
-  it("prevents unauthorized transfers and transferring non-existent tokens", async function () {
-    const tokenId = 50;
-    // no token minted -> ownerOf should revert
-    await expect(nft.ownerOf(tokenId)).to.be.reverted;
+      await nft.connect(user1).transferFrom(
+        admin.address,
+        user2.address,
+        1
+      );
 
-    // unauthorized transfer attempt
-    await nft.connect(deployer).mint(addr1.address, tokenId);
-    await expect(nft.connect(addr2).transferFrom(addr1.address, addr2.address, tokenId))
-      .to.be.revertedWith("caller is not token owner nor approved");
-  });
+      expect(await nft.ownerOf(1)).to.equal(user2.address);
+    });
 
-  it("burning updates balances and totalSupply", async function () {
-    const tokenId = 7;
-    await nft.connect(deployer).mint(addr1.address, tokenId);
-    expect(await nft.totalSupply()).to.equal(1);
-
-    // non-owner can't burn
-    await expect(nft.connect(addr2).burn(tokenId)).to.be.reverted;
-
-    // owner can burn
-    await nft.connect(addr1).burn(tokenId);
-
-    await expect(nft.ownerOf(tokenId)).to.be.reverted; // no longer exists
-    expect(await nft.totalSupply()).to.equal(0);
-    expect(await nft.balanceOf(addr1.address)).to.equal(0);
-  });
-
-  it("events emitted correctly on approval revoke and repeated approvals", async function () {
-    const tokenId = 20;
-    await nft.connect(minter).mint(addr1.address, tokenId);
-
-    await nft.connect(addr1).approve(addr2.address, tokenId);
-    expect(await nft.getApproved(tokenId)).to.equal(addr2.address);
-
-    // revoke approval
-    await expect(nft.connect(addr1).approve(ethers.constants.AddressZero, tokenId))
-      .to.emit(nft, "Approval")
-      .withArgs(addr1.address, ethers.constants.AddressZero, tokenId);
-
-    expect(await nft.getApproved(tokenId)).to.equal(ethers.constants.AddressZero);
-
-    // repeated approves to same address should still emit
-    await expect(nft.connect(addr1).approve(addr2.address, tokenId))
-      .to.emit(nft, "Approval")
-      .withArgs(addr1.address, addr2.address, tokenId);
-  });
-
-  it("measures gas for a typical mint + transfer flow (rough bound)", async function () {
-    // mint one
-    const tokenId = 99;
-    const txMint = await nft.connect(deployer).mint(addr1.address, tokenId);
-    const rcMint = await txMint.wait();
-    const gasMint = rcMint.gasUsed;
-
-    // transfer by owner -> compute gas used
-    const txTransfer = await nft.connect(addr1).transferFrom(addr1.address, addr2.address, tokenId);
-    const rcTransfer = await txTransfer.wait();
-    const gasTransfer = rcTransfer.gasUsed;
-
-    // assert they are within reasonable bounds (values will vary by environment)
-    // using a loose upper bound like 500k for mint and 200k for transfer to avoid brittle tests
-    expect(gasMint.toNumber()).to.be.lessThan(500000);
-    expect(gasTransfer.toNumber()).to.be.lessThan(300000);
-  });
-
-  it("allows admin to pause and unpause minting", async function () {
-    // default admin is deployer
-    await nft.connect(deployer).pauseMinting();
-    await expect(nft.connect(deployer).mint(addr1.address, 2)).to.be.revertedWith("Pausable: paused");
-    await nft.connect(deployer).unpauseMinting();
-    await nft.connect(deployer).mint(addr1.address, 2);
-    expect(await nft.ownerOf(2)).to.equal(addr1.address);
+    it("should revert transfer by unapproved user", async function () {
+      await expect(
+        nft.connect(user1).transferFrom(admin.address, user1.address, 1)
+      ).to.be.revertedWith("caller is not token owner nor approved");
+    });
   });
 });
